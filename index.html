@@ -36,7 +36,17 @@
   .btn-primary{background:#4a6cf7;color:#fff}
   .btn-danger{background:#dc3545;color:#fff}
   .btn-warning{background:#ffc107;color:#1a1a1a}
-  .btn-success{background:#28a745;color:#fff}
+  /* paleta colores */
+  .color-palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .color-swatch{width:36px;height:36px;border-radius:50%;border:2px solid #2a2a4a;cursor:pointer;transition:transform .15s, border-color .15s}
+  .color-swatch:hover{transform:scale(1.15)}
+  .color-swatch.active{border-color:#fff;transform:scale(1.15)}
+  .color-selected{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:.85rem;color:#aaa}
+  .color-selected .preview{width:24px;height:24px;border-radius:50%;border:1px solid #444}
+  .color-input-row{display:flex;gap:10px;align-items:center}
+  .color-input-row input[type="color"]{width:48px;height:40px;padding:2px;border-radius:8px;border:1px solid #2a2a4a;background:transparent;cursor:pointer;flex:0 0 auto}
+  .color-input-row input[type="color"]::-webkit-color-swatch-wrapper{padding:2px}
+  .color-input-row input[type="color"]::-webkit-color-swatch{border-radius:6px;border:none}
   /* tabla */
   .table-box{background:#1a1a2e;border-radius:12px;padding:20px;overflow-x:auto}
   table{width:100%;border-collapse:collapse}
@@ -75,17 +85,24 @@
 <div class="form-box">
   <h2 id="formTitle">➕ Agregar auto</h2>
   <div class="form-grid">
-    <div class="full required">
+    <div class="full">
       <label>Matrícula</label>
       <div class="plate-row">
-        <input type="text" id="plateLetters" placeholder="Letras (ej: ABC)" maxlength="3" style="text-transform:uppercase">
+        <input type="text" id="plateLetters" placeholder="Letras (opcional)" maxlength="3" style="text-transform:uppercase">
         <span>—</span>
-        <input type="text" id="plateNumbers" placeholder="Números (ej: 1234)" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+        <input type="text" id="plateNumbers" placeholder="Números *" maxlength="4" inputmode="numeric" pattern="[0-9]*">
       </div>
     </div>
     <div class="required">
       <label>Color</label>
-      <input type="text" id="color" placeholder="Ej: Rojo">
+      <div class="color-input-row">
+        <input type="color" id="colorPicker" value="#dc3545" oninput="selectColor(this.value)">
+        <div class="color-palette" id="colorPalette"></div>
+      </div>
+      <div class="color-selected" id="colorSelected">
+        <span class="preview" id="colorPreview" style="background:#dc3545"></span>
+        <span id="colorName">Rojo</span>
+      </div>
     </div>
     <div>
       <label>Marca</label>
@@ -94,10 +111,6 @@
     <div>
       <label>Modelo</label>
       <input type="text" id="modelo" placeholder="Ej: Corolla">
-    </div>
-    <div>
-      <label>Año</label>
-      <input type="text" id="anio" placeholder="Ej: 2020">
     </div>
     <div class="full">
       <label>Dirección</label>
@@ -135,59 +148,126 @@
 </div>
 
 <script>
+// --- PALETA DE COLORES ---
+const COLORS = [
+  {hex:'#dc3545',name:'Rojo'},
+  {hex:'#003399',name:'Azul oscuro'},
+  {hex:'#0d6efd',name:'Azul'},
+  {hex:'#0dcaf0',name:'Celeste'},
+  {hex:'#198754',name:'Verde'},
+  {hex:'#28a745',name:'Verde claro'},
+  {hex:'#ffc107',name:'Amarillo'},
+  {hex:'#fd7e14',name:'Naranja'},
+  {hex:'#8b4513',name:'Marrón'},
+  {hex:'#6f42c1',name:'Violeta'},
+  {hex:'#d63384',name:'Rosa'},
+  {hex:'#212529',name:'Negro'},
+  {hex:'#343a40',name:'Gris oscuro'},
+  {hex:'#6c757d',name:'Gris'},
+  {hex:'#c0c0c0',name:'Plata'},
+  {hex:'#f8f9fa',name:'Blanco'},
+  {hex:'#d4af37',name:'Dorado'},
+  {hex:'#800020',name:'Bordo'}
+];
+
+let selectedColor = '#dc3545';
+
+function initPalette(){
+  const container = document.getElementById('colorPalette');
+  container.innerHTML = COLORS.map(c =>
+    `<div class="color-swatch${c.hex===selectedColor?' active':''}" style="background:${c.hex}" onclick="selectColor('${c.hex}')" title="${c.name}"></div>`
+  ).join('');
+  updateColorLabel();
+}
+
+function selectColor(hex){
+  selectedColor = hex;
+  document.getElementById('colorPicker').value = hex;
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.classList.toggle('active', el.style.background === `rgb(${hexToRgb(hex)})` || el.style.background === hex);
+  });
+  // marcar activo por hex
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    const bg = el.style.background;
+    // comparar normalizado
+    el.classList.toggle('active', normalizeColor(bg) === normalizeColor(hex));
+  });
+  updateColorLabel();
+}
+
+function updateColorLabel(){
+  const c = COLORS.find(x => normalizeColor(x.hex) === normalizeColor(selectedColor));
+  document.getElementById('colorPreview').style.background = selectedColor;
+  document.getElementById('colorName').textContent = c ? c.name : selectedColor;
+}
+
+function normalizeColor(c){
+  // acepta hex o rgb
+  if(c.startsWith('#')) return c.toLowerCase();
+  // convertir rgb a hex
+  const m = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if(m) return '#' + [m[1],m[2],m[3]].map(x => (+x).toString(16).padStart(2,'0')).join('');
+  return c;
+}
+
+function hexToRgb(hex){
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r}, ${g}, ${b}`;
+}
+
 // --- DATOS ---
 let autos = JSON.parse(localStorage.getItem('autos')) || [];
 let editingId = null;
 
-// --- GUARDAR A LOCALSTORAGE ---
 function persist(){localStorage.setItem('autos',JSON.stringify(autos))}
 
 // --- VALIDAR FORM ---
 function getFormData(){
   const letters = document.getElementById('plateLetters').value.trim().toUpperCase();
   const numbers = document.getElementById('plateNumbers').value.trim();
-  const color = document.getElementById('color').value.trim();
-  if(!letters || !numbers || !color){
-    alert('Los campos Matrícula (letras y números) y Color son obligatorios.');
+  if(!numbers){
+    alert('El número de matrícula es obligatorio.');
     return null;
   }
   return {
     plateLetters: letters,
     plateNumbers: numbers,
-    color,
+    color: selectedColor,
+    colorName: COLORS.find(c=>normalizeColor(c.hex)===normalizeColor(selectedColor))?.name || selectedColor,
     marca: document.getElementById('marca').value.trim(),
     modelo: document.getElementById('modelo').value.trim(),
-    anio: document.getElementById('anio').value.trim(),
     direccion: document.getElementById('direccion').value.trim(),
     notas: document.getElementById('notas').value.trim()
   };
 }
 
-// --- LIMPIAR FORM ---
 function clearForm(){
   document.getElementById('plateLetters').value='';
   document.getElementById('plateNumbers').value='';
-  document.getElementById('color').value='';
   document.getElementById('marca').value='';
   document.getElementById('modelo').value='';
-  document.getElementById('anio').value='';
   document.getElementById('direccion').value='';
   document.getElementById('notas').value='';
+  selectedColor = '#dc3545';
+  document.getElementById('colorPicker').value = '#dc3545';
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.classList.toggle('active', normalizeColor(el.style.background) === normalizeColor('#dc3545'));
+  });
+  updateColorLabel();
   editingId=null;
   document.getElementById('formTitle').textContent='➕ Agregar auto';
   document.getElementById('cancelBtn').style.display='none';
 }
 
-// --- CANCELAR EDICIÓN ---
 function cancelEdit(){clearForm()}
 
-// --- GUARDAR (CREAR / MODIFICAR) ---
 function saveAuto(){
   const data = getFormData();
   if(!data) return;
 
   if(editingId){
-    // MODIFICAR
     const idx = autos.findIndex(a=>a.id===editingId);
     if(idx!==-1){
       autos[idx]={...autos[idx],...data};
@@ -196,8 +276,6 @@ function saveAuto(){
       clearForm();
     }
   } else {
-    // CREAR
-    // chequear duplicado de matrícula completa
     const full = data.plateLetters+data.plateNumbers;
     if(autos.some(a=>a.plateLetters+a.plateNumbers===full)){
       alert('Ya existe un auto con esa matrícula.');
@@ -213,17 +291,15 @@ function saveAuto(){
   }
 }
 
-// --- CARGAR DATOS EN FORM PARA EDITAR ---
 function editAuto(id){
   const a = autos.find(x=>x.id===id);
   if(!a) return;
   editingId=id;
   document.getElementById('plateLetters').value=a.plateLetters;
   document.getElementById('plateNumbers').value=a.plateNumbers;
-  document.getElementById('color').value=a.color;
+  selectColor(a.color);
   document.getElementById('marca').value=a.marca;
   document.getElementById('modelo').value=a.modelo;
-  document.getElementById('anio').value=a.anio;
   document.getElementById('direccion').value=a.direccion;
   document.getElementById('notas').value=a.notas;
   document.getElementById('formTitle').textContent='✏️ Modificar auto';
@@ -231,7 +307,6 @@ function editAuto(id){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// --- ELIMINAR ---
 function deleteAuto(id){
   if(!confirm('¿Eliminar este auto definitivamente?')) return;
   autos = autos.filter(a=>a.id!==id);
@@ -240,7 +315,6 @@ function deleteAuto(id){
   renderTable();
 }
 
-// --- MOSTRAR TABLA ---
 function renderTable(){
   const q = document.getElementById('searchInput').value.trim();
   const tbody = document.getElementById('tableBody');
@@ -258,8 +332,8 @@ function renderTable(){
 
   tbody.innerHTML = filtered.map(a=>`
     <tr>
-      <td><span class="badge">${a.plateLetters}</span> <strong>${a.plateNumbers}</strong></td>
-      <td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${toColorHex(a.color)};vertical-align:middle;margin-right:6px"></span>${a.color}</td>
+      <td>${a.plateLetters ? `<span class="badge">${a.plateLetters}</span> ` : ''}<strong>${a.plateNumbers}</strong></td>
+      <td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${a.color};vertical-align:middle;margin-right:6px"></span>${a.colorName||a.color}</td>
       <td>${a.marca||'—'}</td>
       <td>${a.modelo||'—'}</td>
       <td style="text-align:center">
@@ -272,13 +346,8 @@ function renderTable(){
   `).join('');
 }
 
-// helper para colorcito bolita
-function toColorHex(c){
-  const map={'rojo':'#dc3545','azul':'#0d6efd','verde':'#198754','negro':'#212529','blanco':'#f8f9fa','gris':'#6c757d','amarillo':'#ffc107','naranja':'#fd7e14','marron':'#8b4513','violeta':'#6f42c1','rosa':'#d63384','celeste':'#0dcaf0','gris oscuro':'#343a40','beige':'#f5f5dc','plata':'#c0c0c0','dorado':'#d4af37','bordo':'#800020'};
-  return map[c.toLowerCase()]||c||'#666';
-}
-
 // --- INICIO ---
+initPalette();
 renderTable();
 </script>
 
