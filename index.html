@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Autos</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;justify-content:center;padding:20px}
+  .container{width:100%;max-width:800px}
+  h1{text-align:center;margin:30px 0;font-size:1.8rem;color:#fff}
+  /* buscador */
+  .search-box{background:#1a1a2e;border-radius:12px;padding:20px;margin-bottom:20px}
+  .search-box label{display:block;margin-bottom:8px;color:#aaa;font-size:.9rem}
+  .search-row{display:flex;gap:10px}
+  .search-row input{flex:1;background:#16213e;border:1px solid #2a2a4a;color:#e0e0e0;padding:12px 16px;border-radius:8px;font-size:1rem;outline:none}
+  .search-row input:focus{border-color:#4a6cf7}
+  .search-row button{background:#4a6cf7;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:1rem;font-weight:600}
+  .search-row button:hover{background:#3b5de7}
+  /* form */
+  .form-box{background:#1a1a2e;border-radius:12px;padding:20px;margin-bottom:20px}
+  .form-box h2{margin-bottom:16px;color:#fff;font-size:1.2rem}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-grid .full{grid-column:1/-1}
+  .form-grid label{display:block;margin-bottom:4px;color:#aaa;font-size:.85rem}
+  .form-grid input,.form-grid textarea{width:100%;background:#16213e;border:1px solid #2a2a4a;color:#e0e0e0;padding:10px 14px;border-radius:8px;font-size:.95rem;outline:none;font-family:inherit}
+  .form-grid input:focus,.form-grid textarea:focus{border-color:#4a6cf7}
+  .form-grid textarea{resize:vertical;min-height:60px}
+  .plate-row{display:flex;gap:8px;align-items:center}
+  .plate-row input{flex:1}
+  .plate-row span{color:#666;font-size:1.2rem;font-weight:700}
+  .required label::after{content:" *";color:#f74a4a}
+  .form-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+  .btn{background:#333;color:#e0e0e0;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600}
+  .btn:hover{filter:brightness(1.2)}
+  .btn-primary{background:#4a6cf7;color:#fff}
+  .btn-danger{background:#dc3545;color:#fff}
+  .btn-warning{background:#ffc107;color:#1a1a1a}
+  .btn-success{background:#28a745;color:#fff}
+  /* tabla */
+  .table-box{background:#1a1a2e;border-radius:12px;padding:20px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;padding:12px 10px;border-bottom:2px solid #2a2a4a;color:#aaa;font-size:.85rem}
+  td{padding:10px;border-bottom:1px solid #222}
+  tr:hover{background:#16213e}
+  .td-actions{display:flex;gap:6px}
+  .td-actions .btn{padding:6px 12px;font-size:.8rem}
+  .empty{text-align:center;padding:40px;color:#666}
+  .badge{display:inline-block;background:#2a2a4a;padding:3px 8px;border-radius:4px;font-size:.8rem}
+  /* responsive */
+  @media(max-width:600px){
+    .form-grid{grid-template-columns:1fr}
+    .search-row{flex-direction:column}
+    .search-row button{width:100%}
+    .container{padding:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🚗 Gestión de Autos</h1>
+
+<!-- BUSCADOR -->
+<div class="search-box">
+  <label>🔍 Buscar por número de matrícula</label>
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="Ej: 1234" oninput="renderTable()">
+    <button onclick="document.getElementById('searchInput').value='';renderTable()">✕ Limpiar</button>
+  </div>
+</div>
+
+<!-- FORMULARIO -->
+<div class="form-box">
+  <h2 id="formTitle">➕ Agregar auto</h2>
+  <div class="form-grid">
+    <div class="full required">
+      <label>Matrícula</label>
+      <div class="plate-row">
+        <input type="text" id="plateLetters" placeholder="Letras (ej: ABC)" maxlength="3" style="text-transform:uppercase">
+        <span>—</span>
+        <input type="text" id="plateNumbers" placeholder="Números (ej: 1234)" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+      </div>
+    </div>
+    <div class="required">
+      <label>Color</label>
+      <input type="text" id="color" placeholder="Ej: Rojo">
+    </div>
+    <div>
+      <label>Marca</label>
+      <input type="text" id="marca" placeholder="Ej: Toyota">
+    </div>
+    <div>
+      <label>Modelo</label>
+      <input type="text" id="modelo" placeholder="Ej: Corolla">
+    </div>
+    <div>
+      <label>Año</label>
+      <input type="text" id="anio" placeholder="Ej: 2020">
+    </div>
+    <div class="full">
+      <label>Dirección</label>
+      <input type="text" id="direccion" placeholder="Ej: Calle Falsa 123">
+    </div>
+    <div class="full">
+      <label>Notas</label>
+      <textarea id="notas" placeholder="Notas adicionales..."></textarea>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn" onclick="cancelEdit()" id="cancelBtn" style="display:none">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveAuto()">💾 Guardar</button>
+  </div>
+</div>
+
+<!-- TABLA -->
+<div class="table-box">
+  <table>
+    <thead>
+      <tr>
+        <th>Matrícula</th>
+        <th>Color</th>
+        <th>Marca</th>
+        <th>Modelo</th>
+        <th style="text-align:center">Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+  </table>
+  <div id="emptyMsg" class="empty">No hay autos registrados. ¡Agregá el primero!</div>
+</div>
+
+</div>
+
+<script>
+// --- DATOS ---
+let autos = JSON.parse(localStorage.getItem('autos')) || [];
+let editingId = null;
+
+// --- GUARDAR A LOCALSTORAGE ---
+function persist(){localStorage.setItem('autos',JSON.stringify(autos))}
+
+// --- VALIDAR FORM ---
+function getFormData(){
+  const letters = document.getElementById('plateLetters').value.trim().toUpperCase();
+  const numbers = document.getElementById('plateNumbers').value.trim();
+  const color = document.getElementById('color').value.trim();
+  if(!letters || !numbers || !color){
+    alert('Los campos Matrícula (letras y números) y Color son obligatorios.');
+    return null;
+  }
+  return {
+    plateLetters: letters,
+    plateNumbers: numbers,
+    color,
+    marca: document.getElementById('marca').value.trim(),
+    modelo: document.getElementById('modelo').value.trim(),
+    anio: document.getElementById('anio').value.trim(),
+    direccion: document.getElementById('direccion').value.trim(),
+    notas: document.getElementById('notas').value.trim()
+  };
+}
+
+// --- LIMPIAR FORM ---
+function clearForm(){
+  document.getElementById('plateLetters').value='';
+  document.getElementById('plateNumbers').value='';
+  document.getElementById('color').value='';
+  document.getElementById('marca').value='';
+  document.getElementById('modelo').value='';
+  document.getElementById('anio').value='';
+  document.getElementById('direccion').value='';
+  document.getElementById('notas').value='';
+  editingId=null;
+  document.getElementById('formTitle').textContent='➕ Agregar auto';
+  document.getElementById('cancelBtn').style.display='none';
+}
+
+// --- CANCELAR EDICIÓN ---
+function cancelEdit(){clearForm()}
+
+// --- GUARDAR (CREAR / MODIFICAR) ---
+function saveAuto(){
+  const data = getFormData();
+  if(!data) return;
+
+  if(editingId){
+    // MODIFICAR
+    const idx = autos.findIndex(a=>a.id===editingId);
+    if(idx!==-1){
+      autos[idx]={...autos[idx],...data};
+      persist();
+      renderTable();
+      clearForm();
+    }
+  } else {
+    // CREAR
+    // chequear duplicado de matrícula completa
+    const full = data.plateLetters+data.plateNumbers;
+    if(autos.some(a=>a.plateLetters+a.plateNumbers===full)){
+      alert('Ya existe un auto con esa matrícula.');
+      return;
+    }
+    autos.push({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      ...data
+    });
+    persist();
+    renderTable();
+    clearForm();
+  }
+}
+
+// --- CARGAR DATOS EN FORM PARA EDITAR ---
+function editAuto(id){
+  const a = autos.find(x=>x.id===id);
+  if(!a) return;
+  editingId=id;
+  document.getElementById('plateLetters').value=a.plateLetters;
+  document.getElementById('plateNumbers').value=a.plateNumbers;
+  document.getElementById('color').value=a.color;
+  document.getElementById('marca').value=a.marca;
+  document.getElementById('modelo').value=a.modelo;
+  document.getElementById('anio').value=a.anio;
+  document.getElementById('direccion').value=a.direccion;
+  document.getElementById('notas').value=a.notas;
+  document.getElementById('formTitle').textContent='✏️ Modificar auto';
+  document.getElementById('cancelBtn').style.display='inline-block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// --- ELIMINAR ---
+function deleteAuto(id){
+  if(!confirm('¿Eliminar este auto definitivamente?')) return;
+  autos = autos.filter(a=>a.id!==id);
+  persist();
+  if(editingId===id) clearForm();
+  renderTable();
+}
+
+// --- MOSTRAR TABLA ---
+function renderTable(){
+  const q = document.getElementById('searchInput').value.trim();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyMsg');
+
+  let filtered = autos;
+  if(q) filtered = autos.filter(a=>a.plateNumbers.includes(q));
+
+  if(filtered.length===0){
+    tbody.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+
+  tbody.innerHTML = filtered.map(a=>`
+    <tr>
+      <td><span class="badge">${a.plateLetters}</span> <strong>${a.plateNumbers}</strong></td>
+      <td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${toColorHex(a.color)};vertical-align:middle;margin-right:6px"></span>${a.color}</td>
+      <td>${a.marca||'—'}</td>
+      <td>${a.modelo||'—'}</td>
+      <td style="text-align:center">
+        <div class="td-actions" style="justify-content:center">
+          <button class="btn btn-warning" onclick="editAuto('${a.id}')">✏️</button>
+          <button class="btn btn-danger" onclick="deleteAuto('${a.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// helper para colorcito bolita
+function toColorHex(c){
+  const map={'rojo':'#dc3545','azul':'#0d6efd','verde':'#198754','negro':'#212529','blanco':'#f8f9fa','gris':'#6c757d','amarillo':'#ffc107','naranja':'#fd7e14','marron':'#8b4513','violeta':'#6f42c1','rosa':'#d63384','celeste':'#0dcaf0','gris oscuro':'#343a40','beige':'#f5f5dc','plata':'#c0c0c0','dorado':'#d4af37','bordo':'#800020'};
+  return map[c.toLowerCase()]||c||'#666';
+}
+
+// --- INICIO ---
+renderTable();
+</script>
+
+</body>
+</html>
